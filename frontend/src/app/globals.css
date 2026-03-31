@@ -1,0 +1,34 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-lira-red: #C41E3A;
+  --color-lira-red-dark: #9A142D;
+  --color-lira-red-light: #DE3652;
+  
+  --color-lira-black: #1A1A1A;
+  --color-lira-black-soft: #2D2D2D;
+  
+  --color-lira-gold: #FFD700;
+  --color-lira-gold-dark: #CCA800;
+  --color-lira-gold-light: #FFE033;
+  
+  --font-sans: var(--font-outfit), sans-serif;
+  --font-heading: var(--font-outfit), sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+html, body {
+  background-color: #FDFDFD;
+  color: #1A1A1A;
+}
+
+::selection {
+  background-color: var(--color-lira-gold);
+  color: var(--color-lira-black);
+}

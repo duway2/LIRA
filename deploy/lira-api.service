@@ -1,0 +1,22 @@
+[Unit]
+Description=LIRA Backend API Service built with Golang
+After=network.target mysql.service redis.service
+
+[Service]
+Type=simple
+User=root
+# Update "WorkingDirectory" and "ExecStart" to match the actual folder on your VPS!
+WorkingDirectory=/var/www/html/lira/backend/cmd/api
+ExecStart=/var/www/html/lira/backend/bin/lira-api
+Restart=on-failure
+RestartSec=5
+# Adjust ports and API configs according to your Ubuntu env file
+EnvironmentFile=/var/www/html/lira/backend/.env
+
+# Standard output logic
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lira-api
+
+[Install]
+WantedBy=multi-user.target
