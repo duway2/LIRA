@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import axios from "axios";
 import api from "@/lib/axios";
+import { resolvePublicAssetUrl } from "@/lib/public-url";
 import {
   INDONESIA_PROVINCES,
   INDONESIA_REGIONS,
@@ -303,6 +304,9 @@ export default function DashboardPage() {
 
   const inputClass =
     "w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-lira-red/30 focus:border-lira-red transition-all font-sans";
+  const idCardUrl = profile?.id
+    ? resolvePublicAssetUrl(`/uploads/idcards/${profile.id}.pdf`)
+    : "#";
 
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
@@ -433,7 +437,7 @@ export default function DashboardPage() {
 
             {profile?.status === "active" ? (
               <a
-                href={`http://127.0.0.1:8080/uploads/idcards/${profile?.id}.pdf`}
+                href={idCardUrl}
                 target="_blank"
                 className="w-full bg-lira-red hover:bg-lira-red-dark text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-lira-red/20 transition flex justify-center items-center gap-2"
               >
@@ -470,7 +474,7 @@ export default function DashboardPage() {
               <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-red-100 mb-4 shadow-lg">
                 {profile?.profile_photo_url ? (
                   <img
-                    src={`http://127.0.0.1:8080${profile.profile_photo_url}`}
+                    src={resolvePublicAssetUrl(profile.profile_photo_url)}
                     alt="Avatar"
                     className="w-full h-full object-cover"
                   />
@@ -504,7 +508,7 @@ export default function DashboardPage() {
             {profile?.identity_photo_url ? (
               <div className="mb-4 h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
                 <img
-                  src={`http://127.0.0.1:8080${profile.identity_photo_url}`}
+                  src={resolvePublicAssetUrl(profile.identity_photo_url)}
                   alt="Foto KTP"
                   className="w-full h-full object-cover"
                 />
