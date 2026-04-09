@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -15,10 +16,11 @@ import (
 
 type MemberService interface {
 	GetMyProfile(userID int64) (*models.Member, error)
+	GetMemberByID(memberID int64) (*models.Member, error)
 	UpsertProfile(userID int64, req *models.MemberProfileRequest) (*models.Member, error)
 	UpdatePhotos(userID int64, profilePhotoURL string, identityPhotoURL string) error
 	GenerateDigitalID(userID int64) error
-	SetMemberStatus(adminID int64, memberID int64, status string) error
+	SetMemberStatus(adminID int64, memberID int64, status string, skipPayment bool) error
 	GetAllMembers() ([]models.Member, error)
 }
 
@@ -45,6 +47,10 @@ func NewMemberService(
 
 func (s *memberService) GetMyProfile(userID int64) (*models.Member, error) {
 	return s.memberRepo.GetMemberByUserID(userID)
+}
+
+func (s *memberService) GetMemberByID(memberID int64) (*models.Member, error) {
+	return s.memberRepo.GetMemberByID(memberID)
 }
 
 func (s *memberService) GetAllMembers() ([]models.Member, error) {
@@ -121,6 +127,14 @@ func (s *memberService) UpdatePhotos(userID int64, profilePhotoURL string, ident
 	return s.memberRepo.UpdateMember(member)
 }
 
+func memberCardStatusLabel(status string) string {
+	if strings.EqualFold(strings.TrimSpace(status), "active") {
+		return "Aktif"
+	}
+
+	return "Tidak Aktif"
+}
+
 func (s *memberService) GenerateDigitalID(userID int64) error {
 	member, err := s.memberRepo.GetMemberByUserID(userID)
 	if err != nil || member == nil {
@@ -141,8 +155,13 @@ func (s *memberService) GenerateDigitalID(userID int64) error {
 		memberName = *member.FullName
 	}
 
-	// Construct barcode data
-	barcodeData := fmt.Sprintf("LIRA-MEMBER-%s-VERIFIED-%d", *member.MemberCode, userID)
+	frontendBaseURL := strings.TrimRight(s.emailSvc.GetFrontendURL(), "/")
+	if frontendBaseURL == "" {
+		frontendBaseURL = "http://localhost:3000"
+	}
+
+	// Construct member verification URL for QR
+	barcodeData := fmt.Sprintf("%s/member/%d", frontendBaseURL, member.ID)
 	member.BarcodeData = &barcodeData
 
 	// 1. Generate QR Code
@@ -165,6 +184,8 @@ func (s *memberService) GenerateDigitalID(userID int64) error {
 		UnitStr: "mm",
 		Size:    gofpdf.SizeType{Wd: 85.6, Ht: 54.0}, // Standard CR80 ID Card size
 	})
+	pdf.SetMargins(0, 0, 0)
+	pdf.SetAutoPageBreak(false, 0)
 
 	pdf.AddPage()
 
@@ -209,6 +230,15 @@ func (s *memberService) GenerateDigitalID(userID int64) error {
 	}
 	pdf.SetXY(25, 34)
 	pdf.CellFormat(55, 4, fmt.Sprintf("Berlaku s/d: %s", expiry), "", 0, "L", false, 0, "")
+
+	pdf.SetFont("Arial", "B", 8)
+	if strings.EqualFold(strings.TrimSpace(member.Status), "active") {
+		pdf.SetTextColor(102, 255, 153)
+	} else {
+		pdf.SetTextColor(255, 178, 178)
+	}
+	pdf.SetXY(25, 39)
+	pdf.CellFormat(36, 4, fmt.Sprintf("Status: %s", memberCardStatusLabel(member.Status)), "", 0, "L", false, 0, "")
 
 	// Embed Profile Photo (if exists and is local png/jpg)
 	if member.ProfilePhotoURL != nil && *member.ProfilePhotoURL != "" {
@@ -308,7 +338,7 @@ func (s *memberService) generateInvoicePDF(member *models.Member, payment *model
 	return "/uploads/invoices/" + fileName, nil
 }
 
-func (s *memberService) SetMemberStatus(adminID int64, memberID int64, status string) error {
+func (s *memberService) SetMemberStatus(adminID int64, memberID int64, status string, skipPayment bool) error {
 	member, err := s.memberRepo.GetMemberByID(memberID)
 	if err != nil || member == nil {
 		return errors.New("member not found")
@@ -333,7 +363,7 @@ func (s *memberService) SetMemberStatus(adminID int64, memberID int64, status st
 			return err
 		}
 
-		if successfulPayment == nil {
+		if successfulPayment == nil && !skipPayment {
 			return errors.New("member belum memiliki pembayaran sukses")
 		}
 	}
@@ -375,35 +405,44 @@ func (s *memberService) SetMemberStatus(adminID int64, memberID int64, status st
 			if err := s.GenerateDigitalID(member.UserID); err != nil {
 				return err
 			}
-
-			invoiceURL, err := s.generateInvoicePDF(member, successfulPayment)
-			if err != nil {
-				return err
-			}
-
-			if err := s.paymentRepo.UpdatePaymentInvoiceURL(successfulPayment.OrderID, invoiceURL); err != nil {
-				return err
-			}
-
 			baseURL := strings.TrimRight(s.emailSvc.GetFrontendURL(), "/")
 			cardLink := fmt.Sprintf("%s/uploads/idcards/%d.pdf", baseURL, member.UserID)
-			invoiceLink := fmt.Sprintf("%s%s", baseURL, invoiceURL)
 
-			htmlBody := fmt.Sprintf(`<p>Selamat! Akun keanggotaan LIRA Anda telah disetujui admin dan aktif.</p>
-				<p>Invoice pembayaran dan Kartu Anggota Digital Anda telah tersedia:</p>
-				<ul>
-					<li><a href="%s" style="color:#C41E3A;font-weight:bold;">Unduh Invoice Keanggotaan</a></li>
-					<li><a href="%s" style="color:#C41E3A;font-weight:bold;">Unduh Kartu Member LIRA</a></li>
-				</ul>
-				<p>Terima kasih telah bergabung bersama LIRA Indonesia.</p>`, invoiceLink, cardLink)
+			htmlBody := ""
+			if successfulPayment != nil {
+				invoiceURL, err := s.generateInvoicePDF(member, successfulPayment)
+				if err != nil {
+					return err
+				}
+
+				if err := s.paymentRepo.UpdatePaymentInvoiceURL(successfulPayment.OrderID, invoiceURL); err != nil {
+					return err
+				}
+
+				invoiceLink := fmt.Sprintf("%s%s", baseURL, invoiceURL)
+				htmlBody = fmt.Sprintf(`<p>Selamat! Akun keanggotaan LIRA Anda telah disetujui admin dan aktif.</p>
+					<p>Invoice pembayaran dan Kartu Anggota Digital Anda telah tersedia:</p>
+					<ul>
+						<li><a href="%s" style="color:#C41E3A;font-weight:bold;">Unduh Invoice Keanggotaan</a></li>
+						<li><a href="%s" style="color:#C41E3A;font-weight:bold;">Unduh Kartu Member LIRA</a></li>
+					</ul>
+					<p>Terima kasih telah bergabung bersama LIRA Indonesia.</p>`, invoiceLink, cardLink)
+			} else {
+				htmlBody = fmt.Sprintf(`<p>Selamat! Akun keanggotaan LIRA Anda telah disetujui admin dan aktif.</p>
+					<p>Aktivasi dilakukan oleh admin tanpa transaksi pembayaran. Kartu Anggota Digital Anda telah tersedia:</p>
+					<ul>
+						<li><a href="%s" style="color:#C41E3A;font-weight:bold;">Unduh Kartu Member LIRA</a></li>
+					</ul>
+					<p>Terima kasih telah bergabung bersama LIRA Indonesia.</p>`, cardLink)
+			}
 
 			if err := s.emailSvc.SendEmail(user.Email, memberName, "Keanggotaan LIRA Disetujui", htmlBody); err != nil {
-				return err
+				log.Printf("warning: failed to send member approval email to %s: %v", user.Email, err)
 			}
 		} else if status == "rejected" {
 			if err := s.emailSvc.SendEmail(user.Email, memberName, "Pembaruan Status Keanggotaan LIRA",
 				"<p>Mohon maaf, pengajuan keanggotaan Anda saat ini Ditolak. Hubungi pengurus regional untuk informasi lebih lanjut.</p>"); err != nil {
-				return err
+				log.Printf("warning: failed to send member rejection email to %s: %v", user.Email, err)
 			}
 		}
 	}

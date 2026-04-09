@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -123,6 +124,39 @@ func (h *MemberHandler) GenerateIDCard(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Digital ID Generated (Implementation Pending)"})
 }
 
+func (h *MemberHandler) PublicMemberStatus(c *gin.Context) {
+	memberID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || memberID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid member id"})
+		return
+	}
+
+	member, err := h.memberSvc.GetMemberByID(memberID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if member == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "member not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"member": gin.H{
+			"id":                member.ID,
+			"member_code":       member.MemberCode,
+			"full_name":         member.FullName,
+			"status":            member.Status,
+			"is_active":         strings.EqualFold(member.Status, "active"),
+			"city":              member.City,
+			"province":          member.Province,
+			"membership_expiry": member.MembershipExpiry,
+			"barcode_data":      member.BarcodeData,
+		},
+	})
+}
+
 // For serve static
 func ServeUploads(router *gin.Engine) {
 	router.Static("/uploads", "./uploads")
@@ -148,14 +182,15 @@ func (h *MemberHandler) AdminVerifyMember(c *gin.Context) {
 	fmt.Sscanf(memberIDStr, "%d", &memberID)
 	
 	var req struct {
-		Status string `json:"status" binding:"required"` // active, rejected
+		Status      string `json:"status" binding:"required"` // active, rejected
+		SkipPayment bool   `json:"skip_payment"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := h.memberSvc.SetMemberStatus(adminID, memberID, req.Status)
+	err := h.memberSvc.SetMemberStatus(adminID, memberID, req.Status, req.SkipPayment)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

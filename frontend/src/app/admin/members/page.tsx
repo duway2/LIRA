@@ -84,17 +84,25 @@ export default function AdminMembersPage() {
     fetchMembers();
   }, [fetchMembers, router]);
 
-  const verifyMember = async (id: number, status: "active" | "rejected") => {
-    if (
-      !confirm(
-        `Apakah Anda yakin ingin memberikan status "${status}" pada pendaftar ini?`,
-      )
-    )
-      return;
+  const verifyMember = async (
+    id: number,
+    status: "active" | "rejected",
+    options?: { skipPayment?: boolean },
+  ) => {
+    const skipPayment = Boolean(options?.skipPayment);
+    const confirmationMessage =
+      status === "active" && skipPayment
+        ? "Apakah Anda yakin ingin mengaktifkan member ini TANPA pembayaran? Aksi ini akan melewati validasi pembayaran sukses."
+        : `Apakah Anda yakin ingin memberikan status "${status}" pada pendaftar ini?`;
+
+    if (!confirm(confirmationMessage)) return;
 
     setProcessingId(id);
     try {
-      await api.post(`/admin/members/${id}/verify`, { status });
+      await api.post(`/admin/members/${id}/verify`, {
+        status,
+        skip_payment: skipPayment,
+      });
       fetchMembers();
     } catch (err: unknown) {
       alert(
@@ -276,13 +284,24 @@ export default function AdminMembersPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         {status === "pending" && (
-                          <div className="flex gap-2 justify-end">
+                          <div className="flex flex-wrap gap-2 justify-end">
                             <button
                               onClick={() => verifyMember(member.id, "active")}
                               disabled={processingId === member.id}
                               className="bg-green-50 text-green-600 hover:bg-green-100 font-bold px-3 py-1.5 rounded-lg text-sm transition-colors border border-green-200 shadow-sm"
                             >
                               Tarik KTA
+                            </button>
+                            <button
+                              onClick={() =>
+                                verifyMember(member.id, "active", {
+                                  skipPayment: true,
+                                })
+                              }
+                              disabled={processingId === member.id}
+                              className="bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold px-3 py-1.5 rounded-lg text-sm transition-colors border border-amber-200 shadow-sm"
+                            >
+                              Aktifkan (Skip Bayar)
                             </button>
                             <button
                               onClick={() =>

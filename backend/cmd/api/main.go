@@ -98,6 +98,7 @@ func main() {
 				"message": "LIRA monolith API is running",
 			})
 		})
+		v1.GET("/members/public/:id", memberHandler.PublicMemberStatus)
 
 		// Protected Route Example
 		v1.GET("/protected", middleware.RequireAuth(cfg.JWTSecret), func(c *gin.Context) {
