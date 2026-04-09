@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import axios from "axios";
 import api from "@/lib/axios";
-import { resolvePublicAssetUrl } from "@/lib/public-url";
+import {
+  resolveAlternateImageAssetUrl,
+  resolvePublicAssetUrl,
+} from "@/lib/public-url";
 import {
   INDONESIA_PROVINCES,
   INDONESIA_REGIONS,
@@ -294,6 +297,24 @@ export default function DashboardPage() {
     }));
   };
 
+  const handleImageFallback = (
+    event: React.SyntheticEvent<HTMLImageElement>,
+    originalPath?: string | null,
+  ) => {
+    const img = event.currentTarget;
+    if (img.dataset.fallbackApplied === "1") {
+      return;
+    }
+
+    const fallbackUrl = resolveAlternateImageAssetUrl(originalPath);
+    if (!fallbackUrl) {
+      return;
+    }
+
+    img.dataset.fallbackApplied = "1";
+    img.src = fallbackUrl;
+  };
+
   if (loading) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
@@ -475,6 +496,9 @@ export default function DashboardPage() {
                 {profile?.profile_photo_url ? (
                   <img
                     src={resolvePublicAssetUrl(profile.profile_photo_url)}
+                    onError={(event) =>
+                      handleImageFallback(event, profile.profile_photo_url)
+                    }
                     alt="Avatar"
                     className="w-full h-full object-cover"
                   />
@@ -509,6 +533,9 @@ export default function DashboardPage() {
               <div className="mb-4 h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
                 <img
                   src={resolvePublicAssetUrl(profile.identity_photo_url)}
+                  onError={(event) =>
+                    handleImageFallback(event, profile.identity_photo_url)
+                  }
                   alt="Foto KTP"
                   className="w-full h-full object-cover"
                 />

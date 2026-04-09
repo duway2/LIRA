@@ -38,3 +38,21 @@ export function resolvePublicAssetUrl(path?: string | null): string {
 
   return normalizedPath;
 }
+
+export function resolveAlternateImageAssetUrl(path?: string | null): string {
+  if (!path) {
+    return "";
+  }
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (/\.jpe?g$/i.test(normalizedPath)) {
+    const swappedPath = normalizedPath.endsWith(".jpg")
+      ? normalizedPath.replace(/\.jpg$/i, ".jpeg")
+      : normalizedPath.replace(/\.jpeg$/i, ".jpg");
+
+    return resolvePublicAssetUrl(swappedPath);
+  }
+
+  return "";
+}

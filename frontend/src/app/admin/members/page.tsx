@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import axios from "axios";
 import api from "@/lib/axios";
-import { resolvePublicAssetUrl } from "@/lib/public-url";
+import {
+  resolveAlternateImageAssetUrl,
+  resolvePublicAssetUrl,
+} from "@/lib/public-url";
 
 type Member = {
   id: number;
@@ -121,6 +124,24 @@ export default function AdminMembersPage() {
     );
   }
 
+  const handleImageFallback = (
+    event: React.SyntheticEvent<HTMLImageElement>,
+    originalPath?: string | null,
+  ) => {
+    const img = event.currentTarget;
+    if (img.dataset.fallbackApplied === "1") {
+      return;
+    }
+
+    const fallbackUrl = resolveAlternateImageAssetUrl(originalPath);
+    if (!fallbackUrl) {
+      return;
+    }
+
+    img.dataset.fallbackApplied = "1";
+    img.src = fallbackUrl;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -194,7 +215,15 @@ export default function AdminMembersPage() {
                           {member.profile_photo_url ? (
                             <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
                               <img
-                                src={resolvePublicAssetUrl(member.profile_photo_url)}
+                                src={resolvePublicAssetUrl(
+                                  member.profile_photo_url,
+                                )}
+                                onError={(event) =>
+                                  handleImageFallback(
+                                    event,
+                                    member.profile_photo_url,
+                                  )
+                                }
                                 alt="P"
                                 className="w-full h-full object-cover"
                               />
@@ -207,7 +236,15 @@ export default function AdminMembersPage() {
                           {member.identity_photo_url ? (
                             <div className="h-10 w-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
                               <img
-                                src={resolvePublicAssetUrl(member.identity_photo_url)}
+                                src={resolvePublicAssetUrl(
+                                  member.identity_photo_url,
+                                )}
+                                onError={(event) =>
+                                  handleImageFallback(
+                                    event,
+                                    member.identity_photo_url,
+                                  )
+                                }
                                 alt="KTP"
                                 className="w-full h-full object-cover"
                               />
