@@ -178,7 +178,9 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	c.Redirect(http.StatusFound, authURL)
 }
 
-// GoogleLogout signs user out from Google session and returns to login page.
+// GoogleLogout clears app session flow by returning user to app login page.
+// We intentionally avoid Google global logout redirect to prevent interstitial
+// "Notifikasi Pengalihan" pages from Google.
 func (h *AuthHandler) GoogleLogout(c *gin.Context) {
 	frontendBase := strings.TrimRight(h.cfg.FrontendURL, "/")
 	if frontendBase == "" {
@@ -186,10 +188,7 @@ func (h *AuthHandler) GoogleLogout(c *gin.Context) {
 	}
 
 	returnURL := fmt.Sprintf("%s/auth/login?logged_out=1", frontendBase)
-	googleLogoutURL := "https://accounts.google.com/Logout?continue=" +
-		url.QueryEscape("https://appengine.google.com/_ah/logout?continue="+url.QueryEscape(returnURL))
-
-	c.Redirect(http.StatusFound, googleLogoutURL)
+	c.Redirect(http.StatusFound, returnURL)
 }
 
 // GoogleCallback handles the returning user from Google OAuth
