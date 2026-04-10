@@ -9,9 +9,10 @@ export default function LayoutFrame({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isAdminArea = pathname.startsWith("/admin");
+  const isDashboardShell =
+    pathname.startsWith("/admin") || pathname.startsWith("/dashboard");
 
-  if (isAdminArea) {
+  if (isDashboardShell) {
     return <main className="min-h-screen">{children}</main>;
   }
 
