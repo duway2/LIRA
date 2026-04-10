@@ -16,6 +16,7 @@ import {
 
 interface Profile {
   id?: number;
+  user_id?: number;
   full_name?: string;
   phone?: string;
   city?: string;
@@ -325,8 +326,9 @@ export default function DashboardPage() {
 
   const inputClass =
     "w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-lira-red/30 focus:border-lira-red transition-all font-sans";
-  const idCardUrl = profile?.id
-    ? resolvePublicAssetUrl(`/uploads/idcards/${profile.id}.pdf`)
+  const idCardFileID = profile?.user_id || profile?.id;
+  const idCardUrl = idCardFileID
+    ? resolvePublicAssetUrl(`/uploads/idcards/${idCardFileID}.pdf`)
     : "#";
 
   return (
