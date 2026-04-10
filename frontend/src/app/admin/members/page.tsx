@@ -137,16 +137,15 @@ export default function AdminMembersPage() {
     originalPath?: string | null,
   ) => {
     const img = event.currentTarget;
-    if (img.dataset.fallbackApplied === "1") {
-      return;
-    }
-
-    const fallbackUrl = resolveAlternateImageAssetUrl(originalPath);
+    const fallbackUrl = resolveAlternateImageAssetUrl(
+      originalPath,
+      img.currentSrc || img.src,
+    );
     if (!fallbackUrl) {
+      img.onerror = null;
       return;
     }
 
-    img.dataset.fallbackApplied = "1";
     img.src = fallbackUrl;
   };
 

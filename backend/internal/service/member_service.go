@@ -406,7 +406,7 @@ func (s *memberService) SetMemberStatus(adminID int64, memberID int64, status st
 				return err
 			}
 			baseURL := strings.TrimRight(s.emailSvc.GetFrontendURL(), "/")
-			cardLink := fmt.Sprintf("%s/uploads/idcards/%d.pdf", baseURL, member.UserID)
+			cardLink := fmt.Sprintf("%s/api/v1/uploads/idcards/%d.pdf", baseURL, member.UserID)
 
 			htmlBody := ""
 			if successfulPayment != nil {

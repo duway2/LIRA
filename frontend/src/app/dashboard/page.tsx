@@ -304,16 +304,15 @@ export default function DashboardPage() {
     originalPath?: string | null,
   ) => {
     const img = event.currentTarget;
-    if (img.dataset.fallbackApplied === "1") {
-      return;
-    }
-
-    const fallbackUrl = resolveAlternateImageAssetUrl(originalPath);
+    const fallbackUrl = resolveAlternateImageAssetUrl(
+      originalPath,
+      img.currentSrc || img.src,
+    );
     if (!fallbackUrl) {
+      img.onerror = null;
       return;
     }
 
-    img.dataset.fallbackApplied = "1";
     img.src = fallbackUrl;
   };
 
@@ -339,16 +338,34 @@ export default function DashboardPage() {
     }
 
     setGeneratingIDCard(true);
+    const cacheBypassUrl = `${idCardUrl}${idCardUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
+
+    const openIDCard = () => {
+      const openedWindow = window.open(
+        cacheBypassUrl,
+        "_blank",
+        "noopener,noreferrer",
+      );
+
+      if (!openedWindow) {
+        window.location.href = cacheBypassUrl;
+      }
+    };
+
     try {
       await api.post("/members/generate-id");
-
-      const cacheBypassUrl = `${idCardUrl}${idCardUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
-      window.open(cacheBypassUrl, "_blank", "noopener,noreferrer");
+      openIDCard();
     } catch (err: unknown) {
-      alert(
-        "Gagal menyiapkan ID Card: " +
-          extractApiError(err, "Terjadi kesalahan saat membuat file kartu."),
+      const errorMessage = extractApiError(
+        err,
+        "Terjadi kesalahan saat membuat file kartu.",
       );
+
+      alert(
+        "Gagal membuat ulang kartu terbaru. Sistem akan mencoba membuka kartu terakhir yang tersedia.\n\nDetail: " +
+          errorMessage,
+      );
+      openIDCard();
     } finally {
       setGeneratingIDCard(false);
     }

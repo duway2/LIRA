@@ -98,6 +98,7 @@ func main() {
 				"message": "LIRA monolith API is running",
 			})
 		})
+		v1.Static("/uploads", "./uploads")
 		v1.GET("/members/public/:id", memberHandler.PublicMemberStatus)
 
 		// Protected Route Example
