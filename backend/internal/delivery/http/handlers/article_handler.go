@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lira/backend/internal/models"
 	"github.com/lira/backend/internal/service"
+	"github.com/lira/backend/pkg/utils"
 )
 
 type ArticleHandler struct {
@@ -116,8 +116,11 @@ func (h *ArticleHandler) UploadImage(c *gin.Context) {
 		return
 	}
 
-	uploadDir := "./uploads/articles"
-	os.MkdirAll(uploadDir, os.ModePerm)
+	uploadDir, err := utils.EnsureUploadSubDir("articles")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare upload directory"})
+		return
+	}
 
 	filename := fmt.Sprintf("%d_%s", userID, filepath.Base(file.Filename)) 
 	// Make sure no spaces or dangerous chars, for safety we should randomize, 

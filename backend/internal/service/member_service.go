@@ -4,13 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/jung-kurt/gofpdf"
 	"github.com/lira/backend/internal/models"
 	"github.com/lira/backend/internal/repository"
+	"github.com/lira/backend/pkg/utils"
 	"github.com/skip2/go-qrcode"
 )
 
@@ -135,6 +138,28 @@ func memberCardStatusLabel(status string) string {
 	return "Tidak Aktif"
 }
 
+func resolveUploadLocalPath(uploadURL string) string {
+	cleaned := strings.TrimSpace(uploadURL)
+	if cleaned == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(cleaned, "http://") || strings.HasPrefix(cleaned, "https://") {
+		if parsed, err := url.Parse(cleaned); err == nil {
+			cleaned = parsed.Path
+		}
+	}
+
+	cleaned = strings.TrimPrefix(cleaned, "/")
+	cleaned = strings.TrimPrefix(cleaned, "api/v1/")
+	cleaned = strings.TrimPrefix(cleaned, "uploads/")
+	if cleaned == "" {
+		return ""
+	}
+
+	return filepath.Join(utils.GetUploadsRootDir(), filepath.FromSlash(cleaned))
+}
+
 func (s *memberService) GenerateDigitalID(userID int64) error {
 	member, err := s.memberRepo.GetMemberByUserID(userID)
 	if err != nil || member == nil {
@@ -165,9 +190,11 @@ func (s *memberService) GenerateDigitalID(userID int64) error {
 	member.BarcodeData = &barcodeData
 
 	// 1. Generate QR Code
-	qrDir := "./uploads/barcodes"
-	os.MkdirAll(qrDir, os.ModePerm)
-	qrPath := fmt.Sprintf("%s/%d.png", qrDir, userID)
+	qrDir, err := utils.EnsureUploadSubDir("barcodes")
+	if err != nil {
+		return fmt.Errorf("failed to prepare barcode directory: %v", err)
+	}
+	qrPath := filepath.Join(qrDir, fmt.Sprintf("%d.png", userID))
 
 	err = qrcode.WriteFile(barcodeData, qrcode.Medium, 256, qrPath)
 	if err != nil {
@@ -175,9 +202,11 @@ func (s *memberService) GenerateDigitalID(userID int64) error {
 	}
 
 	// 2. Generate PDF ID Card
-	pdfDir := "./uploads/idcards"
-	os.MkdirAll(pdfDir, os.ModePerm)
-	pdfPath := fmt.Sprintf("%s/%d.pdf", pdfDir, userID)
+	pdfDir, err := utils.EnsureUploadSubDir("idcards")
+	if err != nil {
+		return fmt.Errorf("failed to prepare id card directory: %v", err)
+	}
+	pdfPath := filepath.Join(pdfDir, fmt.Sprintf("%d.pdf", userID))
 
 	// LIRA Colors: Merah (#C41E3A), Hitam (#1A1A1A), Emas (#FFD700)
 	pdf := gofpdf.NewCustom(&gofpdf.InitType{
@@ -242,14 +271,18 @@ func (s *memberService) GenerateDigitalID(userID int64) error {
 
 	// Embed Profile Photo (if exists and is local png/jpg)
 	if member.ProfilePhotoURL != nil && *member.ProfilePhotoURL != "" {
-		// remove leading slash for local path resolution
-		photoLocalPath := "." + *member.ProfilePhotoURL
-		if _, err := os.Stat(photoLocalPath); err == nil {
-			var opt gofpdf.ImageOptions
-			opt.ImageType = "" // Auto-detect
-			pdf.ImageOptions(photoLocalPath, 5, 18, 18, 24, false, opt, 0, "")
+		photoLocalPath := resolveUploadLocalPath(*member.ProfilePhotoURL)
+		if photoLocalPath != "" {
+			if _, err := os.Stat(photoLocalPath); err == nil {
+				var opt gofpdf.ImageOptions
+				opt.ImageType = "" // Auto-detect
+				pdf.ImageOptions(photoLocalPath, 5, 18, 18, 24, false, opt, 0, "")
+			} else {
+				// Placeholder foto jika tidak ketemu file lokalnya
+				pdf.SetFillColor(50, 50, 50)
+				pdf.Rect(5, 18, 18, 24, "F")
+			}
 		} else {
-			// Placeholder foto jika tidak ketemu file lokalnya
 			pdf.SetFillColor(50, 50, 50)
 			pdf.Rect(5, 18, 18, 24, "F")
 		}
@@ -276,13 +309,13 @@ func (s *memberService) GenerateDigitalID(userID int64) error {
 }
 
 func (s *memberService) generateInvoicePDF(member *models.Member, payment *models.Payment) (string, error) {
-	invoiceDir := "./uploads/invoices"
-	if err := os.MkdirAll(invoiceDir, os.ModePerm); err != nil {
+	invoiceDir, err := utils.EnsureUploadSubDir("invoices")
+	if err != nil {
 		return "", fmt.Errorf("failed to prepare invoice directory: %v", err)
 	}
 
 	fileName := fmt.Sprintf("%s.pdf", payment.OrderID)
-	filePath := fmt.Sprintf("%s/%s", invoiceDir, fileName)
+	filePath := filepath.Join(invoiceDir, fileName)
 
 	memberName := "Member LIRA"
 	if member.FullName != nil && strings.TrimSpace(*member.FullName) != "" {

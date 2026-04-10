@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lira/backend/internal/models"
 	"github.com/lira/backend/internal/service"
+	"github.com/lira/backend/pkg/utils"
 )
 
 type MemberHandler struct {
@@ -82,8 +82,8 @@ func (h *MemberHandler) UploadDocument(c *gin.Context) {
 	}
 
 	// Upload Directory Creation
-	uploadDir := "./uploads/members"
-	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+	uploadDir, err := utils.EnsureUploadSubDir("members")
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create upload directory"})
 		return
 	}
@@ -159,7 +159,7 @@ func (h *MemberHandler) PublicMemberStatus(c *gin.Context) {
 
 // For serve static
 func ServeUploads(router *gin.Engine) {
-	router.Static("/uploads", "./uploads")
+	router.Static("/uploads", utils.GetUploadsRootDir())
 }
 
 // --- Admin Endpoints ---

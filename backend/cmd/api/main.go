@@ -12,6 +12,7 @@ import (
 	"github.com/lira/backend/internal/repository"
 	"github.com/lira/backend/internal/service"
 	"github.com/lira/backend/pkg/database"
+	"github.com/lira/backend/pkg/utils"
 )
 
 func main() {
@@ -98,7 +99,7 @@ func main() {
 				"message": "LIRA monolith API is running",
 			})
 		})
-		v1.Static("/uploads", "./uploads")
+		v1.Static("/uploads", utils.GetUploadsRootDir())
 		v1.GET("/members/public/:id", memberHandler.PublicMemberStatus)
 
 		// Protected Route Example
