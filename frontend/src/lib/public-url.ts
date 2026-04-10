@@ -1,8 +1,28 @@
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
 
 export function getApiOrigin(): string {
-  const envApiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+  const envApiUrl = (process.env.NEXT_PUBLIC_API_URL || "").trim();
   if (!envApiUrl) {
+    if (typeof window !== "undefined") {
+      const localHost = window.location.hostname.trim().toLowerCase();
+      if (LOCAL_HOSTS.has(localHost)) {
+        return `http://${localHost}:8080`;
+      }
+    }
+
+    return "";
+  }
+
+  if (envApiUrl.startsWith("/")) {
+    if (typeof window !== "undefined") {
+      const localHost = window.location.hostname.trim().toLowerCase();
+      if (LOCAL_HOSTS.has(localHost)) {
+        return `http://${localHost}:8080`;
+      }
+
+      return window.location.origin;
+    }
+
     return "";
   }
 
@@ -30,8 +50,43 @@ const buildPathVariants = (path: string): string[] => {
   return uniqueUrls(variants);
 };
 
+const toAbsoluteCandidate = (url: string): string => {
+  const value = url.trim();
+  if (!value) {
+    return "";
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      return new URL(value, window.location.origin).toString();
+    } catch {
+      return value;
+    }
+  }
+
+  return value;
+};
+
 const uniqueUrls = (urls: string[]): string[] => {
-  return Array.from(new Set(urls.filter(Boolean)));
+  const unique: string[] = [];
+  const seen = new Set<string>();
+
+  for (const item of urls) {
+    const value = item.trim();
+    if (!value) {
+      continue;
+    }
+
+    const compareKey = toAbsoluteCandidate(value);
+    if (seen.has(compareKey)) {
+      continue;
+    }
+
+    seen.add(compareKey);
+    unique.push(value);
+  }
+
+  return unique;
 };
 
 const buildImageExtensionVariants = (path: string): string[] => {
@@ -101,14 +156,18 @@ const buildOriginCandidates = (): string[] => {
 
 const stripQueryHash = (url: string): string => url.split(/[?#]/)[0];
 
+const toCompareKey = (url: string): string =>
+  stripQueryHash(toAbsoluteCandidate(url));
+
 const buildRelativeAssetCandidates = (path: string): string[] => {
   const normalizedPath = normalizeAssetPath(path);
   const origins = buildOriginCandidates();
+  const includeRelativePath = typeof window === "undefined";
   const candidates = buildImageExtensionVariants(normalizedPath).flatMap(
     (imagePath) =>
       buildPathVariants(imagePath).flatMap((candidatePath) => [
         ...origins.map((origin) => `${origin}${candidatePath}`),
-        candidatePath,
+        ...(includeRelativePath ? [candidatePath] : []),
       ]),
   );
 
@@ -157,9 +216,9 @@ export function resolveAlternateImageAssetUrl(
     return candidates[1] || "";
   }
 
-  const normalizedCurrentSrc = stripQueryHash(currentSrc);
+  const normalizedCurrentSrc = toCompareKey(currentSrc);
   const currentIndex = candidates.findIndex(
-    (candidate) => stripQueryHash(candidate) === normalizedCurrentSrc,
+    (candidate) => toCompareKey(candidate) === normalizedCurrentSrc,
   );
 
   if (currentIndex === -1) {
