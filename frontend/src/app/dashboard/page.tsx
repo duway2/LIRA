@@ -79,6 +79,7 @@ export default function DashboardPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingIdentity, setUploadingIdentity] = useState(false);
+  const [generatingIDCard, setGeneratingIDCard] = useState(false);
 
   const extractApiError = (err: unknown, fallback: string) => {
     if (axios.isAxiosError(err)) {
@@ -331,6 +332,28 @@ export default function DashboardPage() {
     ? resolvePublicAssetUrl(`/uploads/idcards/${idCardFileID}.pdf`)
     : "#";
 
+  const handleDownloadIDCard = async () => {
+    if (!idCardFileID) {
+      alert("ID card belum tersedia. Lengkapi profil dan tunggu aktivasi.");
+      return;
+    }
+
+    setGeneratingIDCard(true);
+    try {
+      await api.post("/members/generate-id");
+
+      const cacheBypassUrl = `${idCardUrl}${idCardUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
+      window.open(cacheBypassUrl, "_blank", "noopener,noreferrer");
+    } catch (err: unknown) {
+      alert(
+        "Gagal menyiapkan ID Card: " +
+          extractApiError(err, "Terjadi kesalahan saat membuat file kartu."),
+      );
+    } finally {
+      setGeneratingIDCard(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
       <div className="mb-8">
@@ -459,9 +482,10 @@ export default function DashboardPage() {
             </div>
 
             {profile?.status === "active" ? (
-              <a
-                href={idCardUrl}
-                target="_blank"
+              <button
+                type="button"
+                onClick={handleDownloadIDCard}
+                disabled={generatingIDCard}
                 className="w-full bg-lira-red hover:bg-lira-red-dark text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-lira-red/20 transition flex justify-center items-center gap-2"
               >
                 <svg
@@ -477,8 +501,8 @@ export default function DashboardPage() {
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                   />
                 </svg>
-                Download ID Card PDF
-              </a>
+                {generatingIDCard ? "Menyiapkan ID Card..." : "Download ID Card PDF"}
+              </button>
             ) : (
               <div className="text-xs text-gray-500 bg-gray-50 p-4 rounded-xl border border-gray-100 leading-relaxed">
                 Isi profil Anda secara lengkap dan unggah foto/KTP. Status Anda
