@@ -62,8 +62,21 @@ export default function DashboardLayout({
   );
 
   const handleLogout = () => {
+    const provider = Cookies.get("auth_provider");
+
     Cookies.remove("token");
     Cookies.remove("role");
+    Cookies.remove("auth_provider");
+
+    const apiBaseUrl = (
+      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080/api/v1"
+    ).replace(/\/$/, "");
+
+    if (provider === "google") {
+      window.location.href = `${apiBaseUrl}/auth/google/logout`;
+      return;
+    }
+
     router.push("/auth/login");
   };
 
@@ -91,6 +104,7 @@ export default function DashboardLayout({
       } catch {
         Cookies.remove("token");
         Cookies.remove("role");
+        Cookies.remove("auth_provider");
         router.replace("/auth/login");
         return;
       }
@@ -122,6 +136,7 @@ export default function DashboardLayout({
         } else if (axios.isAxiosError(err) && err.response?.status === 401) {
           Cookies.remove("token");
           Cookies.remove("role");
+          Cookies.remove("auth_provider");
           router.replace("/auth/login");
           return;
         } else {

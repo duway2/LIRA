@@ -122,6 +122,7 @@ func main() {
 			auth.POST("/verify-account", authHandler.VerifyAccount)
 			auth.POST("/2fa/toggle", middleware.RequireAuth(cfg.JWTSecret), authHandler.Toggle2FA)
 			auth.GET("/google/login", authHandler.GoogleLogin)
+			auth.GET("/google/logout", authHandler.GoogleLogout)
 			auth.GET("/google/callback", authHandler.GoogleCallback)
 		}
 
@@ -154,6 +155,7 @@ func main() {
 		// --- Article CMS Module ---
 		publicArticles := v1.Group("/articles")
 		{
+			publicArticles.GET("", articleHandler.GetPublicArticles)
 			publicArticles.GET("/", articleHandler.GetPublicArticles)
 			publicArticles.GET("/:slug", articleHandler.GetArticleBySlug)
 		}

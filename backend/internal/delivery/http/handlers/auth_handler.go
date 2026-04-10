@@ -163,12 +163,33 @@ func (h *AuthHandler) Toggle2FA(c *gin.Context) {
 // GoogleLogin redirects the user to the Google OAuth consent screen
 func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	b := make([]byte, 16)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate OAuth state"})
+		return
+	}
 	state := base64.URLEncoding.EncodeToString(b)
-	// Optionally, store state in cookie to validate against CSRF
+	// Optionally, store state in cookie to validate against CSRF.
+	// Force account chooser so users can switch account after logout.
+	authURL := h.oauthConfig.AuthCodeURL(
+		state,
+		oauth2.SetAuthURLParam("prompt", "select_account"),
+		oauth2.SetAuthURLParam("include_granted_scopes", "true"),
+	)
+	c.Redirect(http.StatusFound, authURL)
+}
 
-	url := h.oauthConfig.AuthCodeURL(state)
-	c.Redirect(http.StatusFound, url)
+// GoogleLogout signs user out from Google session and returns to login page.
+func (h *AuthHandler) GoogleLogout(c *gin.Context) {
+	frontendBase := strings.TrimRight(h.cfg.FrontendURL, "/")
+	if frontendBase == "" {
+		frontendBase = "http://localhost:3000"
+	}
+
+	returnURL := fmt.Sprintf("%s/auth/login?logged_out=1", frontendBase)
+	googleLogoutURL := "https://accounts.google.com/Logout?continue=" +
+		url.QueryEscape("https://appengine.google.com/_ah/logout?continue="+url.QueryEscape(returnURL))
+
+	c.Redirect(http.StatusFound, googleLogoutURL)
 }
 
 // GoogleCallback handles the returning user from Google OAuth

@@ -42,6 +42,7 @@ export default function LoginPage() {
     Cookies.set("token", ssoToken, { expires: 1 });
     const role = ssoRole || "member";
     Cookies.set("role", role, { expires: 1 });
+    Cookies.set("auth_provider", "google", { expires: 1 });
 
     if (role === "admin") {
       router.replace("/admin");
@@ -70,6 +71,7 @@ export default function LoginPage() {
         Cookies.set("token", res.data.token, { expires: 1 }); // 1 day
         const role = res.data.user?.role || "member";
         Cookies.set("role", role, { expires: 1 });
+        Cookies.set("auth_provider", "password", { expires: 1 });
 
         if (role === "admin") {
           router.push("/admin");
@@ -96,6 +98,7 @@ export default function LoginPage() {
       Cookies.set("token", res.data.token, { expires: 1 });
       const role = res.data.user?.role || "member";
       Cookies.set("role", role, { expires: 1 });
+      Cookies.set("auth_provider", "password", { expires: 1 });
 
       if (role === "admin") {
         router.push("/admin");
