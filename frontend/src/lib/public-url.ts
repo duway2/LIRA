@@ -34,16 +34,35 @@ const uniqueUrls = (urls: string[]): string[] => {
   return Array.from(new Set(urls.filter(Boolean)));
 };
 
-const swapJpegPath = (path: string): string => {
-  if (/\.jpg$/i.test(path)) {
-    return path.replace(/\.jpg$/i, ".jpeg");
+const buildImageExtensionVariants = (path: string): string[] => {
+  const basePath = stripQueryHash(path);
+  const suffix = path.slice(basePath.length);
+
+  if (/\.jpg$/i.test(basePath)) {
+    return uniqueUrls([
+      `${basePath}${suffix}`,
+      `${basePath.replace(/\.jpg$/i, ".jpeg")}${suffix}`,
+      `${basePath.replace(/\.jpg$/i, ".png")}${suffix}`,
+    ]);
   }
 
-  if (/\.jpeg$/i.test(path)) {
-    return path.replace(/\.jpeg$/i, ".jpg");
+  if (/\.jpeg$/i.test(basePath)) {
+    return uniqueUrls([
+      `${basePath}${suffix}`,
+      `${basePath.replace(/\.jpeg$/i, ".jpg")}${suffix}`,
+      `${basePath.replace(/\.jpeg$/i, ".png")}${suffix}`,
+    ]);
   }
 
-  return "";
+  if (/\.png$/i.test(basePath)) {
+    return uniqueUrls([
+      `${basePath}${suffix}`,
+      `${basePath.replace(/\.png$/i, ".jpg")}${suffix}`,
+      `${basePath.replace(/\.png$/i, ".jpeg")}${suffix}`,
+    ]);
+  }
+
+  return [path];
 };
 
 const buildOriginCandidates = (): string[] => {
@@ -82,40 +101,43 @@ const buildOriginCandidates = (): string[] => {
 
 const stripQueryHash = (url: string): string => url.split(/[?#]/)[0];
 
+const buildRelativeAssetCandidates = (path: string): string[] => {
+  const normalizedPath = normalizeAssetPath(path);
+  const origins = buildOriginCandidates();
+  const candidates = buildImageExtensionVariants(normalizedPath).flatMap(
+    (imagePath) =>
+      buildPathVariants(imagePath).flatMap((candidatePath) => [
+        ...origins.map((origin) => `${origin}${candidatePath}`),
+        candidatePath,
+      ]),
+  );
+
+  return uniqueUrls(candidates);
+};
+
 export function resolvePublicAssetCandidates(path?: string | null): string[] {
   if (!path) {
     return [];
   }
 
   if (/^https?:\/\//i.test(path)) {
-    const absoluteCandidates = [path];
-    const swapAbsolute = swapJpegPath(path);
-    if (swapAbsolute) {
-      absoluteCandidates.push(swapAbsolute);
+    const absoluteCandidates = buildImageExtensionVariants(path);
+    try {
+      const parsed = new URL(path);
+      if (parsed.pathname.startsWith("/uploads/")) {
+        const fromPathCandidates = buildRelativeAssetCandidates(
+          `${parsed.pathname}${parsed.search || ""}`,
+        );
+        return uniqueUrls([...fromPathCandidates, ...absoluteCandidates]);
+      }
+    } catch {
+      // Keep absolute fallback candidates only.
     }
+
     return uniqueUrls(absoluteCandidates);
   }
 
-  const normalizedPath = normalizeAssetPath(path);
-  const origins = buildOriginCandidates();
-  const candidates = buildPathVariants(normalizedPath).flatMap(
-    (candidatePath) => [
-      ...origins.map((origin) => `${origin}${candidatePath}`),
-      candidatePath,
-    ],
-  );
-
-  const swappedPath = swapJpegPath(normalizedPath);
-  if (swappedPath) {
-    candidates.push(
-      ...buildPathVariants(swappedPath).flatMap((candidatePath) => [
-        ...origins.map((origin) => `${origin}${candidatePath}`),
-        candidatePath,
-      ]),
-    );
-  }
-
-  return uniqueUrls(candidates);
+  return buildRelativeAssetCandidates(path);
 }
 
 export function resolvePublicAssetUrl(path?: string | null): string {
