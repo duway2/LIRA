@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import axios from "axios";
@@ -9,6 +9,7 @@ import {
   resolveAlternateImageAssetUrl,
   resolvePublicAssetUrl,
 } from "@/lib/public-url";
+import { useLanguage } from "@/contexts/language-context";
 
 interface User {
   id: number;
@@ -33,11 +34,13 @@ type EditUserForm = {
 
 export default function AdminDashboardPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submittingId, setSubmittingId] = useState<number | null>(null);
   const [assetVersion, setAssetVersion] = useState<number>(() => Date.now());
+  const [searchTerm, setSearchTerm] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editForm, setEditForm] = useState<EditUserForm>({
     name: "",
@@ -47,48 +50,85 @@ export default function AdminDashboardPage() {
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const filteredUsers = useMemo(() => {
+    const normalizedKeyword = searchTerm.trim().toLowerCase();
+    if (!normalizedKeyword) {
+      return users;
+    }
+
+    return users.filter((user) => {
+      return [
+        String(user.id),
+        user.name || "",
+        user.email || "",
+        user.role || "",
+        user.member_code || "",
+        user.member_status || "",
+        user.is_active ? "active" : "inactive",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedKeyword);
+    });
+  }, [searchTerm, users]);
+
   const fetchUsers = useCallback(async () => {
     try {
       const res = await api.get("/admin/users/");
       setUsers(res.data.users || []);
       setAssetVersion(Date.now());
     } catch (err: unknown) {
-      if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
+      if (
+        axios.isAxiosError(err) &&
+        (err.response?.status === 401 || err.response?.status === 403)
+      ) {
         Cookies.remove("token");
         Cookies.remove("role");
-        alert("Akses ditolak! Anda bukan admin.");
+        alert(
+          t(
+            "Akses ditolak! Anda bukan admin.",
+            "Access denied! You are not an admin.",
+          ),
+        );
         router.push("/dashboard");
       } else {
-        setError("Gagal memuat data pengguna.");
+        setError(t("Gagal memuat data pengguna.", "Failed to load user data."));
       }
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, t]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
   const handleToggleStatus = async (userId: number, currentStatus: boolean) => {
-    if (!confirm(`Apakah Anda yakin ingin ${currentStatus ? 'Menonaktifkan' : 'Mengaktifkan'} user ini?`)) return;
-    
+    if (
+      !confirm(
+        `Apakah Anda yakin ingin ${currentStatus ? "Menonaktifkan" : "Mengaktifkan"} user ini?`,
+      )
+    )
+      return;
+
     setSubmittingId(userId);
     try {
       await api.post("/admin/users/status", {
         target_user_id: userId,
-        is_active: !currentStatus
+        is_active: !currentStatus,
       });
       fetchUsers();
     } catch {
-      alert("Gagal merubah status user.");
+      alert(t("Gagal merubah status user.", "Failed to update user status."));
     } finally {
       setSubmittingId(null);
     }
   };
 
   const handleForceResetPassword = async (userId: number) => {
-    const newPassword = prompt("Masukkan password baru untuk user ini (Minimal 6 karakter):");
+    const newPassword = prompt(
+      "Masukkan password baru untuk user ini (Minimal 6 karakter):",
+    );
     if (!newPassword || newPassword.length < 6) {
       if (newPassword !== null) alert("Password minimal 6 karakter!");
       return;
@@ -98,11 +138,13 @@ export default function AdminDashboardPage() {
     try {
       await api.post("/admin/users/reset-password", {
         target_user_id: userId,
-        new_password: newPassword
+        new_password: newPassword,
       });
-      alert("Password berhasil direset!");
+      alert(t("Password berhasil direset!", "Password reset successfully!"));
     } catch {
-      alert("Gagal mereset password user.");
+      alert(
+        t("Gagal mereset password user.", "Failed to reset user password."),
+      );
     } finally {
       setSubmittingId(null);
     }
@@ -134,15 +176,18 @@ export default function AdminDashboardPage() {
     return `${resolved}${resolved.includes("?") ? "&" : "?"}v=${assetVersion}`;
   };
 
-  const handleDownloadMemberFile = (path?: string | null, defaultName = "dokumen-member") => {
+  const handleDownloadMemberFile = (
+    path?: string | null,
+    defaultName = "dokumen-member",
+  ) => {
     if (!path) {
-      alert("Dokumen belum tersedia.");
+      alert(t("Dokumen belum tersedia.", "Document is not available yet."));
       return;
     }
 
     const resolved = resolvePublicAssetUrl(path);
     if (!resolved) {
-      alert("URL dokumen tidak valid.");
+      alert(t("URL dokumen tidak valid.", "Document URL is invalid."));
       return;
     }
 
@@ -178,7 +223,7 @@ export default function AdminDashboardPage() {
     const normalizedName = editForm.name.trim();
     const normalizedEmail = editForm.email.trim();
     if (!normalizedName || !normalizedEmail) {
-      alert("Nama dan email wajib diisi.");
+      alert(t("Nama dan email wajib diisi.", "Name and email are required."));
       return;
     }
 
@@ -191,7 +236,9 @@ export default function AdminDashboardPage() {
         role: editForm.role,
         is_active: editForm.is_active,
       });
-      alert("Data user berhasil diperbarui.");
+      alert(
+        t("Data user berhasil diperbarui.", "User data updated successfully."),
+      );
       setEditingUser(null);
       fetchUsers();
     } catch (err: unknown) {
@@ -199,7 +246,7 @@ export default function AdminDashboardPage() {
         "Gagal memperbarui user: " +
           (axios.isAxiosError(err)
             ? String(err.response?.data?.error || err.message)
-            : "Terjadi kesalahan"),
+            : t("Terjadi kesalahan", "An unexpected error occurred")),
       );
     } finally {
       setSavingEdit(false);
@@ -217,8 +264,31 @@ export default function AdminDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-gray-900 font-sans">Admin Console</h1>
-        <p className="text-gray-500 mt-2 font-medium">Manajemen User dan Otorisasi LIRA.</p>
+        <h1 className="text-3xl font-black text-gray-900 font-sans">
+          {t("Admin Console", "Admin Console")}
+        </h1>
+        <p className="text-gray-500 mt-2 font-medium">
+          {t(
+            "Manajemen User dan Otorisasi LIRA.",
+            "LIRA User Management and Authorization.",
+          )}
+        </p>
+      </div>
+
+      <div className="mb-5 rounded-xl bg-white border border-gray-200 p-3 sm:p-4 shadow-sm">
+        <label className="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">
+          {t("Pencarian User", "User Search")}
+        </label>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          placeholder={t(
+            "Cari nama, email, role, kode member, atau status...",
+            "Search name, email, role, member code, or status...",
+          )}
+          className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-lira-red/25"
+        />
       </div>
 
       {error ? (
@@ -241,16 +311,22 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {users.map((u) => (
+                {filteredUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-gray-900">{u.name || "N/A"}</td>
+                    <td className="px-6 py-4 font-bold text-gray-900">
+                      {u.name || "N/A"}
+                    </td>
                     <td className="px-6 py-4 text-gray-600">{u.email}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        u.role === 'admin' ? 'bg-red-50 text-lira-red border border-red-200' : 
-                        u.role === 'editor' ? 'bg-blue-50 text-blue-600 border border-blue-200' :
-                        'bg-gray-100 text-gray-600 border border-gray-200'
-                      }`}>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          u.role === "admin"
+                            ? "bg-red-50 text-lira-red border border-red-200"
+                            : u.role === "editor"
+                              ? "bg-blue-50 text-blue-600 border border-blue-200"
+                              : "bg-gray-100 text-gray-600 border border-gray-200"
+                        }`}
+                      >
                         {u.role.toUpperCase()}
                       </span>
                     </td>
@@ -262,7 +338,10 @@ export default function AdminDashboardPage() {
                               <img
                                 src={resolveAssetSrc(u.profile_photo_url)}
                                 onError={(event) =>
-                                  handleImageFallback(event, u.profile_photo_url)
+                                  handleImageFallback(
+                                    event,
+                                    u.profile_photo_url,
+                                  )
                                 }
                                 alt="Foto profil member"
                                 className="h-9 w-9 rounded-lg border border-gray-200 bg-gray-100 object-cover"
@@ -292,7 +371,10 @@ export default function AdminDashboardPage() {
                               <img
                                 src={resolveAssetSrc(u.identity_photo_url)}
                                 onError={(event) =>
-                                  handleImageFallback(event, u.identity_photo_url)
+                                  handleImageFallback(
+                                    event,
+                                    u.identity_photo_url,
+                                  )
                                 }
                                 alt="Foto KTP member"
                                 className="h-9 w-14 rounded-lg border border-gray-200 bg-gray-100 object-cover"
@@ -319,21 +401,29 @@ export default function AdminDashboardPage() {
 
                           <div className="text-[11px] text-gray-500">
                             {u.member_code || "Kode member belum terbit"}
-                            {u.member_status ? ` • ${u.member_status.toUpperCase()}` : ""}
+                            {u.member_status
+                              ? ` • ${u.member_status.toUpperCase()}`
+                              : ""}
                           </div>
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-400">Bukan akun member</span>
+                        <span className="text-xs text-gray-400">
+                          Bukan akun member
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-center text-gray-500">
-                      {u.is_2fa_enabled ? '✅' : '—'}
+                      {u.is_2fa_enabled ? "✅" : "—"}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        u.is_active ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'
-                      }`}>
-                        {u.is_active ? 'AKTIF' : 'DIBLOKIR'}
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          u.is_active
+                            ? "bg-green-50 text-green-600 border border-green-200"
+                            : "bg-red-50 text-red-600 border border-red-200"
+                        }`}
+                      >
+                        {u.is_active ? "AKTIF" : "DIBLOKIR"}
                       </span>
                     </td>
                     <td className="px-6 py-4 flex gap-2 justify-end">
@@ -348,10 +438,12 @@ export default function AdminDashboardPage() {
                         disabled={submittingId === u.id}
                         onClick={() => handleToggleStatus(u.id, u.is_active)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm ${
-                          u.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
+                          u.is_active
+                            ? "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
+                            : "bg-green-50 text-green-600 hover:bg-green-100 border border-green-200"
                         }`}
                       >
-                        {u.is_active ? 'Blokir Akses' : 'Pulihkan Akses'}
+                        {u.is_active ? "Blokir Akses" : "Pulihkan Akses"}
                       </button>
                       <button
                         disabled={submittingId === u.id}
@@ -363,9 +455,19 @@ export default function AdminDashboardPage() {
                     </td>
                   </tr>
                 ))}
-                {users.length === 0 && (
+                {filteredUsers.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-400 font-medium">Belum ada user terdaftar.</td>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-8 text-center text-gray-400 font-medium"
+                    >
+                      {searchTerm
+                        ? t(
+                            "Tidak ada data user yang cocok.",
+                            "No matching users found.",
+                          )
+                        : t("Belum ada user terdaftar.", "No users found.")}
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -391,7 +493,9 @@ export default function AdminDashboardPage() {
 
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Nama</label>
+                <label className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                  Nama
+                </label>
                 <input
                   type="text"
                   value={editForm.name}
@@ -403,7 +507,9 @@ export default function AdminDashboardPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Email</label>
+                <label className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                  Email
+                </label>
                 <input
                   type="email"
                   value={editForm.email}
@@ -415,7 +521,9 @@ export default function AdminDashboardPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Role</label>
+                <label className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                  Role
+                </label>
                 <select
                   value={editForm.role}
                   onChange={(e) =>
@@ -437,7 +545,10 @@ export default function AdminDashboardPage() {
                   type="checkbox"
                   checked={editForm.is_active}
                   onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, is_active: e.target.checked }))
+                    setEditForm((prev) => ({
+                      ...prev,
+                      is_active: e.target.checked,
+                    }))
                   }
                   className="h-4 w-4 rounded border-gray-300"
                 />

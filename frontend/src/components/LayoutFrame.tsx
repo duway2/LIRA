@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { useLanguage } from "@/contexts/language-context";
 
 export default function LayoutFrame({
   children,
@@ -9,6 +10,7 @@ export default function LayoutFrame({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const isDashboardShell =
     pathname.startsWith("/admin") || pathname.startsWith("/dashboard");
 
@@ -25,15 +27,15 @@ export default function LayoutFrame({
       <footer className="bg-gray-100 py-8 border-t border-gray-200 mt-auto">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-gray-500 font-semibold">
-            &copy; {new Date().getFullYear()} LUMBUNG INFORMASI RAKYAT. Hak
-            Cipta Dilindungi.
+            &copy; {new Date().getFullYear()} LUMBUNG INFORMASI RAKYAT.{" "}
+            {t("Hak Cipta Dilindungi.", "All Rights Reserved.")}
           </p>
           <div className="flex gap-4 text-sm text-gray-500 font-medium">
             <a href="#" className="hover:text-lira-red">
-              Kebijakan Privasi
+              {t("Kebijakan Privasi", "Privacy Policy")}
             </a>
             <a href="#" className="hover:text-lira-red">
-              Syarat & Ketentuan
+              {t("Syarat & Ketentuan", "Terms & Conditions")}
             </a>
           </div>
         </div>

@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import api from "@/lib/axios";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/contexts/language-context";
 
 type MemberProfile = {
   full_name?: string;
@@ -53,6 +55,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useLanguage();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [onboardingMissingCount, setOnboardingMissingCount] = useState(6);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -188,29 +191,36 @@ export default function DashboardLayout({
     <div className="min-h-screen w-full bg-gray-50 md:flex">
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 md:hidden">
         <div>
-          <h2 className="text-base font-bold text-gray-900">Akun Member</h2>
-          <p className="text-xs text-gray-500">Sistem Terintegrasi</p>
+          <h2 className="text-base font-bold text-gray-900">
+            {t("Akun Member", "Member Account")}
+          </h2>
+          <p className="text-xs text-gray-500">
+            {t("Sistem Terintegrasi", "Integrated System")}
+          </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setMobileNavOpen(true)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100"
-          aria-label="Buka menu dashboard"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100"
+            aria-label={t("Buka menu dashboard", "Open dashboard menu")}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
       </header>
 
       {mobileNavOpen && (
@@ -252,6 +262,10 @@ export default function DashboardLayout({
                     />
                   </svg>
                 </button>
+              </div>
+
+              <div className="px-6 pb-2">
+                <LanguageSwitcher />
               </div>
 
               <nav className="px-4 space-y-2 mt-4">
@@ -366,10 +380,17 @@ export default function DashboardLayout({
         <div>
           <div className="py-6 px-6 mb-2 border-b border-gray-100">
             <h2 className="text-xl font-bold font-sans text-gray-900">
-              Akun{" "}
-              <span className="text-lira-red block font-black">MEMBER</span>
+              {t("Akun", "Account")}{" "}
+              <span className="text-lira-red block font-black">
+                {t("MEMBER", "MEMBER")}
+              </span>
             </h2>
-            <p className="text-xs text-gray-500 mt-1">Sistem Terintegrasi</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {t("Sistem Terintegrasi", "Integrated System")}
+            </p>
+            <div className="mt-3">
+              <LanguageSwitcher />
+            </div>
           </div>
 
           <nav className="px-4 space-y-2 mt-4">

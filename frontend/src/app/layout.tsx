@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import LayoutFrame from "@/components/LayoutFrame";
+import { LanguageProvider } from "@/contexts/language-context";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -24,7 +25,9 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} font-sans antialiased min-h-screen flex flex-col`}
       >
-        <LayoutFrame>{children}</LayoutFrame>
+        <LanguageProvider>
+          <LayoutFrame>{children}</LayoutFrame>
+        </LanguageProvider>
       </body>
     </html>
   );

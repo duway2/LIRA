@@ -1,6 +1,10 @@
-import Image from "next/image";
+"use client";
+
+import { useLanguage } from "@/contexts/language-context";
 
 export default function Home() {
+  const { t } = useLanguage();
+
   return (
     <div className="relative isolate overflow-hidden bg-white">
       {/* Light Background Gradient Ornaments */}
@@ -15,7 +19,10 @@ export default function Home() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lira-red opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-lira-red"></span>
           </span>
-          Rekor MURI Organisasi Sipil Terbesar
+          {t(
+            "Rekor MURI Organisasi Sipil Terbesar",
+            "MURI Record for Largest Civil Organization",
+          )}
         </div>
 
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-gray-900 max-w-5xl leading-[1.1]">
@@ -27,15 +34,24 @@ export default function Home() {
 
         <p className="mt-8 text-lg sm:text-xl text-gray-600 max-w-3xl font-medium leading-relaxed">
           <strong className="text-gray-900">
-            LUMBUNG INFORMASI RAKYAT (LIRA)
+            {t(
+              "LSM LUMBUNG INFORMASI RAKYAT INDONESIA (LIRA)",
+              "LUMBUNG INFORMASI RAKYAT INDONESIA (LIRA)",
+            )}
           </strong>{" "}
-          merupakan organisasi masyarakat sipil dengan jaringan luas di seluruh
-          Indonesia. Sejak tahun 2009 LIRA tercatat sebagai organisasi dengan
-          cabang terbanyak di Indonesia dan memperoleh{" "}
-          <span className="text-lira-red font-bold">Rekor MURI</span>. LIRA
-          menggunakan konsep{" "}
-          <strong className="text-gray-900">Shadow of Governance</strong> untuk
-          mengawal kebijakan publik dan memperjuangkan kepentingan rakyat.
+          {t(
+            "merupakan organisasi masyarakat sipil dengan jaringan luas di seluruh Indonesia. Sejak tahun 2009 LIRA tercatat sebagai organisasi dengan cabang terbanyak di Indonesia dan memperoleh",
+            "is a civil society organization with a wide network across Indonesia. Since 2009, LIRA has been recognized as one of the organizations with the most branches in Indonesia and has received",
+          )}{" "}
+          <span className="text-lira-red font-bold">
+            {t("Rekor MURI", "the MURI Record")}
+          </span>
+          . {t("LIRA menggunakan konsep", "LIRA applies the")}{" "}
+          <strong className="text-gray-900">Shadow of Governance</strong>{" "}
+          {t(
+            "untuk mengawal kebijakan publik dan memperjuangkan kepentingan rakyat.",
+            "framework to oversee public policy and advocate for the people.",
+          )}
         </p>
 
         <div className="mt-12 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
@@ -43,7 +59,7 @@ export default function Home() {
             href="/auth/register"
             className="rounded-full bg-lira-red px-10 py-4 text-base font-bold text-white shadow-xl shadow-lira-red/30 hover:bg-lira-red-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lira-red transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
           >
-            Daftar Sekarang
+            {t("Daftar Sekarang", "Register Now")}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
@@ -61,7 +77,7 @@ export default function Home() {
             href="/auth/login"
             className="rounded-full bg-white border-2 border-gray-200 px-10 py-4 text-base font-bold text-gray-900 hover:border-gray-300 hover:bg-gray-50 transition-all hover:scale-105 active:scale-95 flex items-center justify-center shadow-sm"
           >
-            Masuk ke Dashboard
+            {t("Masuk ke Dashboard", "Go to Dashboard")}
           </a>
         </div>
       </section>
@@ -75,7 +91,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-white/20 text-center">
             <div className="p-4 flex flex-col items-center">
               <dt className="text-base leading-7 text-red-100 font-medium tracking-wide">
-                Sejak Tahun
+                {t("Sejak Tahun", "Since")}
               </dt>
               <dd className="order-first text-4xl sm:text-5xl font-black tracking-tight text-white mb-2">
                 2009
@@ -84,19 +100,19 @@ export default function Home() {
 
             <div className="p-4 flex flex-col items-center pt-8 md:pt-4">
               <dt className="text-base leading-7 text-red-100 font-medium tracking-wide">
-                Cabang Seluruh
+                {t("Cabang Seluruh", "Branches Across")}
               </dt>
               <dd className="order-first text-4xl sm:text-5xl font-black tracking-tight text-white mb-2">
-                Indonesia
+                {t("Indonesia", "Indonesia")}
               </dd>
             </div>
 
             <div className="p-4 flex flex-col items-center pt-8 md:pt-4">
               <dt className="text-base leading-7 text-red-100 font-medium tracking-wide">
-                ID Digital & Barcode
+                {t("ID Digital & Barcode", "Digital ID & Barcode")}
               </dt>
               <dd className="order-first text-4xl sm:text-5xl font-black tracking-tight text-white mb-2">
-                Instan
+                {t("Instan", "Instant")}
               </dd>
             </div>
           </div>
@@ -107,14 +123,16 @@ export default function Home() {
       <section className="py-24 sm:py-32 bg-gray-50 border-t border-gray-100">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
           <h2 className="text-base font-bold leading-7 text-lira-red uppercase tracking-widest">
-            Platform Terpadu
+            {t("Platform Terpadu", "Integrated Platform")}
           </h2>
           <p className="mt-2 text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">
-            Satu Akses Untuk Semua Fitur
+            {t("Satu Akses Untuk Semua Fitur", "One Access for All Features")}
           </p>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600 font-medium">
-            Daftar, aktivasi, dan langsung gunakan fitur-fitur jurnalisme serta
-            manajemen keanggotaan modern yang ditenagai oleh performa mutakhir.
+            {t(
+              "Daftar, aktivasi, dan langsung gunakan fitur-fitur jurnalisme serta manajemen keanggotaan modern yang ditenagai oleh performa mutakhir.",
+              "Register, activate, and instantly use journalism and modern membership management features powered by high performance systems.",
+            )}
           </p>
 
           <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
@@ -135,11 +153,13 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                ID Card Digital
+                {t("ID Card Digital", "Digital ID Card")}
               </h3>
               <p className="text-gray-600 leading-relaxed font-medium">
-                Download dan cetak Kartu Anggota Digital resmi dengan Barcode
-                tersinkronisasi server kapan saja tanpa batasan.
+                {t(
+                  "Download dan cetak Kartu Anggota Digital resmi dengan Barcode tersinkronisasi server kapan saja tanpa batasan.",
+                  "Download and print your official Digital Member Card with server-synced barcode anytime without limitations.",
+                )}
               </p>
             </div>
 
@@ -160,11 +180,13 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                Publikasi Berita
+                {t("Publikasi Berita", "News Publishing")}
               </h3>
               <p className="text-gray-600 leading-relaxed font-medium">
-                Gunakan editor CMS intuitif untuk menulis dan menerbitkan rilis
-                berita langsung ke jaringan media dan portal harian LIRA.
+                {t(
+                  "Gunakan editor CMS intuitif untuk menulis dan menerbitkan rilis berita langsung ke jaringan media dan portal harian LIRA.",
+                  "Use an intuitive CMS editor to write and publish releases directly to LIRA media networks and daily portals.",
+                )}
               </p>
             </div>
 
@@ -185,11 +207,13 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                Proteksi Level Militer
+                {t("Proteksi Level Militer", "Military-Grade Security")}
               </h3>
               <p className="text-gray-600 leading-relaxed font-medium">
-                Platform dilindungi keamanan level *Enterprise* dengan ditenagai
-                sistem proteksi dan *Single Sign-On* via Google Identity.
+                {t(
+                  "Platform dilindungi keamanan level Enterprise dengan ditenagai sistem proteksi dan Single Sign-On via Google Identity.",
+                  "The platform is protected with enterprise-grade security, powered by a robust protection system and Google Identity Single Sign-On.",
+                )}
               </p>
             </div>
           </div>

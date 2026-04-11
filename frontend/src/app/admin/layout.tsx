@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/contexts/language-context";
 
 type AdminRole = "admin" | "editor";
 
@@ -14,6 +16,7 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useLanguage();
   const [checkingRole, setCheckingRole] = useState(true);
   const [userRole, setUserRole] = useState<AdminRole | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -104,30 +107,37 @@ export default function AdminLayout({
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 md:hidden">
         <div>
           <h2 className="text-base font-bold text-lira-red">
-            {userRole === "editor" ? "Editor Console" : "Admin Console"}
+            {userRole === "editor"
+              ? t("Editor Console", "Editor Console")
+              : t("Admin Console", "Admin Console")}
           </h2>
-          <p className="text-xs text-gray-500">Sistem Manajerial</p>
+          <p className="text-xs text-gray-500">
+            {t("Sistem Manajerial", "Management System")}
+          </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setMobileNavOpen(true)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100"
-          aria-label="Buka menu admin"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100"
+            aria-label={t("Buka menu admin", "Open admin menu")}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
       </header>
 
       {mobileNavOpen && (
@@ -143,10 +153,12 @@ export default function AdminLayout({
               <div className="py-6 px-6 mb-2 border-b border-gray-100 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-lira-red">
-                    {userRole === "editor" ? "Editor Console" : "Admin Console"}
+                    {userRole === "editor"
+                      ? t("Editor Console", "Editor Console")
+                      : t("Admin Console", "Admin Console")}
                   </h2>
                   <p className="text-xs text-gray-500 mt-1">
-                    Sistem Manajerial
+                    {t("Sistem Manajerial", "Management System")}
                   </p>
                 </div>
                 <button
@@ -264,7 +276,7 @@ export default function AdminLayout({
                       d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
                     />
                   </svg>
-                  Portal Berita (Publik)
+                  {t("Portal Berita (Publik)", "News Portal (Public)")}
                 </Link>
               </nav>
             </div>
@@ -299,9 +311,16 @@ export default function AdminLayout({
         <div>
           <div className="py-6 px-6 mb-2 border-b border-gray-100">
             <h2 className="text-xl font-bold font-sans text-lira-red block">
-              {userRole === "editor" ? "Editor Console" : "Admin Console"}
+              {userRole === "editor"
+                ? t("Editor Console", "Editor Console")
+                : t("Admin Console", "Admin Console")}
             </h2>
-            <p className="text-xs text-gray-500 mt-1">Sistem Manajerial</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {t("Sistem Manajerial", "Management System")}
+            </p>
+            <div className="mt-3">
+              <LanguageSwitcher />
+            </div>
           </div>
 
           <nav className="px-4 space-y-2 mt-4">
@@ -393,7 +412,7 @@ export default function AdminLayout({
                   d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
                 />
               </svg>
-              Portal Berita (Publik)
+              {t("Portal Berita (Publik)", "News Portal (Public)")}
             </Link>
           </nav>
         </div>

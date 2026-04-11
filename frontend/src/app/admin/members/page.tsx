@@ -127,7 +127,10 @@ export default function AdminMembersPage() {
     return `${resolved}${resolved.includes("?") ? "&" : "?"}v=${assetVersion}`;
   };
 
-  const downloadFile = (path?: string | null, fallbackName = "dokumen-member") => {
+  const downloadFile = (
+    path?: string | null,
+    fallbackName = "dokumen-member",
+  ) => {
     if (!path) {
       alert("Dokumen belum tersedia.");
       return;
@@ -260,7 +263,9 @@ export default function AdminMembersPage() {
                             {member.profile_photo_url ? (
                               <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
                                 <img
-                                  src={resolveAssetSrc(member.profile_photo_url)}
+                                  src={resolveAssetSrc(
+                                    member.profile_photo_url,
+                                  )}
                                   onError={(event) =>
                                     handleImageFallback(
                                       event,
@@ -295,7 +300,9 @@ export default function AdminMembersPage() {
                             {member.identity_photo_url ? (
                               <div className="h-10 w-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
                                 <img
-                                  src={resolveAssetSrc(member.identity_photo_url)}
+                                  src={resolveAssetSrc(
+                                    member.identity_photo_url,
+                                  )}
                                   onError={(event) =>
                                     handleImageFallback(
                                       event,
