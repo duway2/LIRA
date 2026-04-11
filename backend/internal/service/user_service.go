@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/lira/backend/internal/models"
 	"github.com/lira/backend/internal/repository"
@@ -13,6 +14,7 @@ type UserService interface {
 	AdminResetPassword(targetUserID int64, newPassword string) error
 	GetUsers() ([]models.User, error)
 	ManageUserStatus(targetUserID int64, isActive bool) error
+	AdminUpdateUser(targetUserID int64, email, name, role string, isActive bool) error
 }
 
 type userService struct {
@@ -110,4 +112,41 @@ func (s *userService) ManageUserStatus(targetUserID int64, isActive bool) error 
 	}
 
 	return err
+}
+
+func (s *userService) AdminUpdateUser(targetUserID int64, email, name, role string, isActive bool) error {
+	user, err := s.userRepo.GetUserByID(targetUserID)
+	if err != nil || user == nil {
+		return errors.New("target user not found")
+	}
+
+	email = strings.TrimSpace(email)
+	name = strings.TrimSpace(name)
+	role = strings.ToLower(strings.TrimSpace(role))
+
+	if email == "" || name == "" {
+		return errors.New("name and email are required")
+	}
+
+	if role != "admin" && role != "editor" && role != "member" {
+		return errors.New("role must be admin, editor, or member")
+	}
+
+	if email != user.Email {
+		existingUser, err := s.userRepo.GetUserByEmail(email)
+		if err != nil {
+			return err
+		}
+
+		if existingUser != nil && existingUser.ID != user.ID {
+			return errors.New("email is already fully registered")
+		}
+	}
+
+	user.Email = email
+	user.Name = name
+	user.Role = role
+	user.IsActive = isActive
+
+	return s.userRepo.UpdateUser(user)
 }

@@ -103,3 +103,32 @@ func (h *UserHandler) AdminSetUserStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "User status updated"})
 }
+
+func (h *UserHandler) AdminUpdateUser(c *gin.Context) {
+	var req struct {
+		TargetUserID int64  `json:"target_user_id" binding:"required"`
+		Email        string `json:"email" binding:"required,email"`
+		Name         string `json:"name" binding:"required"`
+		Role         string `json:"role" binding:"required"`
+		IsActive     bool   `json:"is_active"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.userSvc.AdminUpdateUser(
+		req.TargetUserID,
+		req.Email,
+		req.Name,
+		req.Role,
+		req.IsActive,
+	)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User updated"})
+}

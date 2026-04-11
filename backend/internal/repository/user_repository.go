@@ -67,7 +67,26 @@ func (r *userRepository) GetUserByID(id int64) (*models.User, error) {
 
 func (r *userRepository) GetUsers() ([]models.User, error) {
 	var users []models.User
-	err := r.db.Select(&users, "SELECT id, email, role, name, is_active, is_2fa_enabled, created_at, updated_at FROM users ORDER BY created_at DESC")
+	query := `
+		SELECT
+			u.id,
+			u.email,
+			u.role,
+			u.name,
+			u.is_active,
+			u.is_2fa_enabled,
+			m.id AS member_id,
+			m.status AS member_status,
+			m.member_code,
+			m.profile_photo_url,
+			m.identity_photo_url,
+			u.created_at,
+			u.updated_at
+		FROM users u
+		LEFT JOIN members m ON m.user_id = u.id
+		ORDER BY u.created_at DESC
+	`
+	err := r.db.Select(&users, query)
 	if err != nil {
 		return nil, err
 	}

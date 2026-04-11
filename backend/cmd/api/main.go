@@ -138,6 +138,7 @@ func main() {
 			adminRouter.GET("/", userHandler.AdminGetUsers)
 			adminRouter.POST("/reset-password", userHandler.AdminResetUserPassword)
 			adminRouter.POST("/status", userHandler.AdminSetUserStatus)
+			adminRouter.PUT("/update", userHandler.AdminUpdateUser)
 		}
 
 		adminMembersRouter := v1.Group("/admin/members", middleware.RequireAuth(cfg.JWTSecret), middleware.RequireRole("admin"))

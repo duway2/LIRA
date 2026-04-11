@@ -28,11 +28,13 @@ export default function AdminMembersPage() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [accessDenied, setAccessDenied] = useState("");
+  const [assetVersion, setAssetVersion] = useState<number>(() => Date.now());
 
   const fetchMembers = useCallback(async () => {
     try {
       const res = await api.get("/admin/members");
       setMembers(res.data.members || []);
+      setAssetVersion(Date.now());
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         Cookies.remove("token");
@@ -116,6 +118,41 @@ export default function AdminMembersPage() {
     }
   };
 
+  const resolveAssetSrc = (path?: string | null) => {
+    const resolved = resolvePublicAssetUrl(path);
+    if (!resolved) {
+      return "";
+    }
+
+    return `${resolved}${resolved.includes("?") ? "&" : "?"}v=${assetVersion}`;
+  };
+
+  const downloadFile = (path?: string | null, fallbackName = "dokumen-member") => {
+    if (!path) {
+      alert("Dokumen belum tersedia.");
+      return;
+    }
+
+    const resolved = resolvePublicAssetUrl(path);
+    if (!resolved) {
+      alert("URL dokumen tidak valid.");
+      return;
+    }
+
+    const extensionMatch = path.match(/\.[a-z0-9]+$/i);
+    const fileName = `${fallbackName}${extensionMatch ? extensionMatch[0] : ""}`;
+    const finalUrl = `${resolved}${resolved.includes("?") ? "&" : "?"}download=1&v=${Date.now()}`;
+
+    const a = document.createElement("a");
+    a.href = finalUrl;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
   if (accessDenied) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 font-medium">
@@ -146,7 +183,7 @@ export default function AdminMembersPage() {
       return;
     }
 
-    img.src = fallbackUrl;
+    img.src = `${fallbackUrl}${fallbackUrl.includes("?") ? "&" : "?"}v=${assetVersion}`;
   };
 
   const getStatusColor = (status: string) => {
@@ -218,49 +255,76 @@ export default function AdminMembersPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {member.profile_photo_url ? (
-                            <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
-                              <img
-                                src={resolvePublicAssetUrl(
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            {member.profile_photo_url ? (
+                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
+                                <img
+                                  src={resolveAssetSrc(member.profile_photo_url)}
+                                  onError={(event) =>
+                                    handleImageFallback(
+                                      event,
+                                      member.profile_photo_url,
+                                    )
+                                  }
+                                  alt="P"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-300 font-bold">
+                                Foto
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              disabled={!member.profile_photo_url}
+                              onClick={() =>
+                                downloadFile(
                                   member.profile_photo_url,
-                                )}
-                                onError={(event) =>
-                                  handleImageFallback(
-                                    event,
-                                    member.profile_photo_url,
-                                  )
-                                }
-                                alt="P"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-300 font-bold">
-                              Foto
-                            </div>
-                          )}
-                          {member.identity_photo_url ? (
-                            <div className="h-10 w-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
-                              <img
-                                src={resolvePublicAssetUrl(
+                                  `member-${member.id}-foto`,
+                                )
+                              }
+                              className="px-2.5 py-1 rounded-md text-xs font-semibold border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Download Foto
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            {member.identity_photo_url ? (
+                              <div className="h-10 w-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
+                                <img
+                                  src={resolveAssetSrc(member.identity_photo_url)}
+                                  onError={(event) =>
+                                    handleImageFallback(
+                                      event,
+                                      member.identity_photo_url,
+                                    )
+                                  }
+                                  alt="KTP"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="h-10 w-16 rounded-lg bg-gray-100 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-300 font-bold">
+                                KTP
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              disabled={!member.identity_photo_url}
+                              onClick={() =>
+                                downloadFile(
                                   member.identity_photo_url,
-                                )}
-                                onError={(event) =>
-                                  handleImageFallback(
-                                    event,
-                                    member.identity_photo_url,
-                                  )
-                                }
-                                alt="KTP"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="h-10 w-16 rounded-lg bg-gray-100 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-300 font-bold">
-                              KTP
-                            </div>
-                          )}
+                                  `member-${member.id}-ktp`,
+                                )
+                              }
+                              className="px-2.5 py-1 rounded-md text-xs font-semibold border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Download KTP
+                            </button>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
