@@ -65,6 +65,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [assetVersion, setAssetVersion] = useState<number>(() => Date.now());
 
   // Form State
   const [formData, setFormData] = useState<ProfileForm>({
@@ -204,6 +205,7 @@ export default function DashboardPage() {
           identity_photo_url:
             type === "identity" ? uploadedUrl : prev?.identity_photo_url,
         }));
+        setAssetVersion(Date.now());
       }
 
       alert(`Berhasil mengunggah dokumen ${type}`);
@@ -313,7 +315,16 @@ export default function DashboardPage() {
       return;
     }
 
-    img.src = fallbackUrl;
+    img.src = `${fallbackUrl}${fallbackUrl.includes("?") ? "&" : "?"}v=${assetVersion}`;
+  };
+
+  const resolveAssetSrc = (path?: string | null) => {
+    const resolved = resolvePublicAssetUrl(path);
+    if (!resolved) {
+      return "";
+    }
+
+    return `${resolved}${resolved.includes("?") ? "&" : "?"}v=${assetVersion}`;
   };
 
   if (loading) {
@@ -540,7 +551,7 @@ export default function DashboardPage() {
               <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-red-100 mb-4 shadow-lg">
                 {profile?.profile_photo_url ? (
                   <img
-                    src={resolvePublicAssetUrl(profile.profile_photo_url)}
+                    src={resolveAssetSrc(profile.profile_photo_url)}
                     onError={(event) =>
                       handleImageFallback(event, profile.profile_photo_url)
                     }
@@ -577,7 +588,7 @@ export default function DashboardPage() {
             {profile?.identity_photo_url ? (
               <div className="mb-4 h-40 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
                 <img
-                  src={resolvePublicAssetUrl(profile.identity_photo_url)}
+                  src={resolveAssetSrc(profile.identity_photo_url)}
                   onError={(event) =>
                     handleImageFallback(event, profile.identity_photo_url)
                   }
